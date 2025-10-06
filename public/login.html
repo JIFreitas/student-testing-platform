@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gestão de Testes - Login</title>
+    <link rel="stylesheet" href="/css/login.css">
+</head>
+<body>
+    <div class="login-container">
+        <div class="header">
+            <h1>Sistema de Gestão de Testes</h1>
+            <p>Demonstração - Mestrado em Engenharia Informática</p>
+        </div>
+
+        <div class="info">
+            <h3>Informações de Acesso:</h3>
+            <ul>
+                <li><strong>Aluno:</strong> Insere o teu número de aluno (ex: 12345)</li>
+                <li><strong>Admin:</strong> Clica em "Entrar como Admin"</li>
+            </ul>
+        </div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="studentId">Número de Aluno:</label>
+                <input type="text" id="studentId" placeholder="Ex: 12345" />
+            </div>
+
+            <div class="login-buttons">
+                <button type="button" class="btn btn-student" onclick="loginAsStudent()">
+                    Entrar como Aluno
+                </button>
+                <button type="button" class="btn btn-admin" onclick="loginAsAdmin()">
+                    Entrar como Admin
+                </button>
+            </div>
+
+            <div id="error" class="error"></div>
+        </form>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/login.js"></script>
+</body>
+</html>

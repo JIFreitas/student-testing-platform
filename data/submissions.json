@@ -1,0 +1,46 @@
+{
+  "25392": [
+    {
+      "exerciseId": 1,
+      "code": "console.assert(validarEmail(\"test@example.com\") === true, \"Email válido deve retornar true\");\n\nconsole.assert(validarEmail(\"testexample.com\") === false, \"Email válido deve retornar false\");\n\nconsole.assert(validarEmail(\"test@examplecom\") === false, \"Email válido deve retornar false\");",
+      "testResults": "\n=== TESTES ===\nPASSOU: Email válido deve retornar true\nPASSOU: Email válido deve retornar false\nPASSOU: Email válido deve retornar false\n\n=== RESUMO ===\nTestes executados: 3\nPassou: 3\nFalhou: 0",
+      "timestamp": "2025-10-06T16:55:48.313Z"
+    },
+    {
+      "exerciseId": 1,
+      "code": "// Escreve os teus testes aqui usando console.assert:\n// Exemplo: console.assert(validarEmail(\"test@example.com\") === true, \"Email válido deve retornar true\");",
+      "testResults": {
+        "output": "",
+        "allPassed": false,
+        "passed": 0,
+        "failed": 0
+      },
+      "timestamp": "2025-10-06T17:17:00.907Z",
+      "completed": false
+    },
+    {
+      "exerciseId": 1,
+      "code": "console.assert(validarEmail(\"test@example.com\") === true, \"Email válido deve retornar true\");",
+      "testResults": {
+        "output": "Erro na execução:\nteste is not defined",
+        "allPassed": false,
+        "passed": 0,
+        "failed": 0
+      },
+      "timestamp": "2025-10-06T17:17:13.171Z",
+      "completed": false
+    },
+    {
+      "exerciseId": 1,
+      "code": "// Escreve os teus testes aqui usando console.assert:\n// Exemplo: console.assert(validarEmail(\"test@example.com\") === true, \"Email válido deve retornar true\");",
+      "testResults": {
+        "output": "Nenhum teste encontrado. Use console.assert() para criar testes.\n\n=== RESUMO ===\nTestes executados: 0\nPassou: 0\nFalhou: 0",
+        "allPassed": false,
+        "passed": 0,
+        "failed": 0
+      },
+      "timestamp": "2025-10-06T17:17:17.514Z",
+      "completed": false
+    }
+  ]
+}

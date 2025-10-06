@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard do Aluno - Sistema de Testes</title>
+    <link rel="stylesheet" href="/css/student.css">
+</head>
+<body>
+    <div class="header">
+        <h1>Dashboard do Aluno</h1>
+        <span id="studentInfo">Aluno: Carregando...</span>
+        <button class="logout-btn" onclick="logout()">Sair</button>
+    </div>
+
+    <div class="container">
+        <div class="panel">
+            <div class="panel-header">Exercícios de Testes</div>
+            <div class="panel-content">
+                <div id="connectionStatus" class="status connected">Conectado ao servidor</div>
+                <div id="exercises"></div>
+            </div>
+        </div>
+
+        <div class="panel chat-panel" style="display: none;">
+            <div class="panel-header">Chat com Suporte</div>
+            <div class="panel-content">
+                <div id="chatMessages" class="chat-messages"></div>
+                <div class="chat-input">
+                    <input type="text" id="messageInput" placeholder="Escreve a tua mensagem..." />
+                    <button class="btn-send" onclick="sendMessage()">Enviar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/student.js"></script>
+</body>
+</html>

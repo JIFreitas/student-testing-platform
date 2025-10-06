@@ -1,0 +1,28 @@
+{
+  "25392": [
+    {
+      "message": "Boas consegues me ajudar?",
+      "timestamp": "2025-10-06T16:58:47.691Z",
+      "type": "student",
+      "studentId": "25392"
+    },
+    {
+      "message": "Claro, o que precisas?",
+      "timestamp": "2025-10-06T16:59:04.877Z",
+      "type": "admin",
+      "studentId": "25392"
+    },
+    {
+      "message": "Como faço para nao submeter",
+      "timestamp": "2025-10-06T16:59:31.714Z",
+      "type": "student",
+      "studentId": "25392"
+    },
+    {
+      "message": "teste",
+      "timestamp": "2025-10-06T16:59:41.546Z",
+      "type": "student",
+      "studentId": "25392"
+    }
+  ]
+}

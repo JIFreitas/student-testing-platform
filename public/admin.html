@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Admin - Sistema de Testes</title>
+    <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+    <div class="header">
+        <h1>Dashboard Administrativo</h1>
+        <span>Monitorização em Tempo Real</span>
+        <button class="logout-btn" onclick="logout()">Sair</button>
+    </div>
+
+    <div class="stats">
+        <div class="stat-card">
+            <div class="stat-number" id="totalStudents">0</div>
+            <div class="stat-label">Alunos Conectados</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="totalSubmissions">0</div>
+            <div class="stat-label">Submissões Totais</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="totalChats">0</div>
+            <div class="stat-label">Conversas Ativas</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="totalMessages">0</div>
+            <div class="stat-label">Mensagens Totais</div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Painel de Submissões -->
+        <div class="panel">
+            <div class="panel-header">
+                Submissões de Exercícios
+                <button class="btn btn-refresh" onclick="refreshData()">Atualizar</button>
+            </div>
+            <div class="panel-content">
+                <div id="connectionStatus" class="status connected">Conectado ao servidor</div>
+                <div id="submissions">
+                    <div class="empty-state">Nenhuma submissão encontrada</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-header">
+                Chats dos Alunos
+                <span id="onlineCount">0 online</span>
+            </div>
+            <div class="panel-content">
+                <div id="chats">
+                    <div class="empty-state">Nenhuma conversa ativa</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/admin.js"></script>
+</body>
+</html>

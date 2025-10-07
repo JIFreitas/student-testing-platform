@@ -1,4 +1,18 @@
 {
+  "123": [
+    {
+      "exerciseId": 1,
+      "code": "console.assert(validarEmail(\"test@example.com\") === true, \"Email válido deve retornar true\");\nconsole.assert(validarEmail(\"test@example.com\") === true, \"Email válido deve retornar true\");\nconsole.assert(validarEmail(\"test@example.com\") === true, \"Email válido deve retornar true\");",
+      "testResults": {
+        "output": "\n=== TESTES ===\nPASSOU: Email válido deve retornar true\nPASSOU: Email válido deve retornar true\nPASSOU: Email válido deve retornar true\n\n=== RESUMO ===\nTestes executados: 3\nPassou: 3\nFalhou: 0",
+        "allPassed": true,
+        "passed": 3,
+        "failed": 0
+      },
+      "timestamp": "2025-10-07T18:01:15.381Z",
+      "completed": true
+    }
+  ],
   "25392": [
     {
       "exerciseId": 1,
@@ -41,6 +55,30 @@
       },
       "timestamp": "2025-10-06T17:17:17.514Z",
       "completed": false
+    },
+    {
+      "exerciseId": 2,
+      "code": "console.assert(JSON.stringify(ordenarArray([3,1,2])) === JSON.stringify([1,2,3]), \"Array deve ser ordenado\");\n\nconsole.assert(JSON.stringify(ordenarArray([3,1,2])) === JSON.stringify([1,2,3]), \"Array deve ser ordenado\");\nconsole.assert(JSON.stringify(ordenarArray([3,1,2])) === JSON.stringify([1,2,3]), \"Array deve ser ordenado\");",
+      "testResults": {
+        "output": "\n=== TESTES ===\nPASSOU: Array deve ser ordenado\nPASSOU: Array deve ser ordenado\nPASSOU: Array deve ser ordenado\n\n=== RESUMO ===\nTestes executados: 3\nPassou: 3\nFalhou: 0",
+        "allPassed": true,
+        "passed": 3,
+        "failed": 0
+      },
+      "timestamp": "2025-10-07T17:38:39.611Z",
+      "completed": true
+    },
+    {
+      "exerciseId": 3,
+      "code": "console.assert(calculadora('+', 5, 3) === 8, \"5 + 3 deve ser 8\");\n\nconsole.assert(calculadora('+', 5, 3) === 8, \"5 + 3 deve ser 8\");\nconsole.assert(calculadora('+', 5, 4) === 9, \"5 + 3 deve ser 9\");",
+      "testResults": {
+        "output": "\n=== TESTES ===\nPASSOU: 5 + 3 deve ser 8\nPASSOU: 5 + 3 deve ser 8\nPASSOU: 5 + 3 deve ser 9\n\n=== RESUMO ===\nTestes executados: 3\nPassou: 3\nFalhou: 0",
+        "allPassed": true,
+        "passed": 3,
+        "failed": 0
+      },
+      "timestamp": "2025-10-07T17:47:10.562Z",
+      "completed": true
     }
   ]
 }

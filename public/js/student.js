@@ -4,6 +4,9 @@ let studentId = null;
 let exercises = [];
 let currentExercise = null;
 
+// Rastrear estado dos exercícios
+const exerciseStates = new Map(); // exerciseId -> { lastExecutedCode, lastTestResults, codeChanged }
+
 const studentInfo = document.getElementById('studentInfo');
 const exercisesContainer = document.getElementById('exercises');
 const chatMessages = document.getElementById('chatMessages');
@@ -36,7 +39,7 @@ async function validateTokenAndLogin() {
 window.addEventListener('load', validateTokenAndLogin);
 
 socket.on('loginSuccess', (data) => {
-    console.log('Login confirmado via socket');
+    // Login confirmado
 });
 
 socket.on('disconnect', () => {
@@ -76,6 +79,10 @@ async function loadExercises() {
     try {
         const response = await fetch(`/api/exercises-status/${token}`);
         exercises = await response.json();
+        
+        // Carregar submissões anteriores do aluno
+        await loadPreviousSubmissions();
+        
         displayExercises();
     } catch (error) {
         console.error('Erro ao carregar exercícios:', error);
@@ -87,6 +94,36 @@ async function loadExercises() {
         } catch (fallbackError) {
             console.error('Erro no fallback:', fallbackError);
         }
+    }
+}
+
+// Nova função para carregar submissões anteriores
+async function loadPreviousSubmissions() {
+    try {
+        const response = await fetch(`/api/student-submissions/${token}`);
+        if (response.ok) {
+            const submissions = await response.json();
+            
+            // Para cada exercício, verificar se há submissão anterior
+            exercises.forEach(exercise => {
+                const submission = submissions.find(sub => sub.exerciseId === exercise.id);
+                if (submission) {
+                    // Restaurar o código da última submissão
+                    exercise.lastSubmittedCode = submission.code;
+                    
+                    // Se a submissão foi bem-sucedida, inicializar o estado como se os testes tivessem sido executados
+                    if (submission.completed && submission.testResults) {
+                        exerciseStates.set(exercise.id, {
+                            lastExecutedCode: submission.code,
+                            lastTestResults: submission.testResults,
+                            codeChanged: false
+                        });
+                    }
+                }
+            });
+        }
+    } catch (error) {
+        // Nenhuma submissão anterior encontrada
     }
 }
 
@@ -114,6 +151,9 @@ function displayExercises() {
         // Seções diferentes para exercícios normais vs exercícios de programação
         let codeSection = '';
         
+        // Usar código da última submissão se existir, senão usar baseCode
+        const codeToShow = exercise.lastSubmittedCode || exercise.baseCode;
+        
         if (isCodingType) {
             // Exercício de programação: testes fixos + área de código
             codeSection = `
@@ -122,7 +162,7 @@ function displayExercises() {
                     <div class="readonly-code">${exercise.testCode}</div>
                 </div>
                 <div class="editable-code-header">Implementa a função aqui:</div>
-                <textarea id="code-${exercise.id}" class="${textareaClass}" ${textareaProps} placeholder="${!isAccessible ? 'Exercício bloqueado' : 'Implementa a função aqui...'}">${exercise.baseCode}</textarea>
+                <textarea id="code-${exercise.id}" class="${textareaClass}" ${textareaProps} placeholder="${!isAccessible ? 'Exercício bloqueado' : 'Implementa a função aqui...'}">${codeToShow}</textarea>
             `;
         } else {
             // Exercício normal: função fixa + área de testes
@@ -136,8 +176,11 @@ function displayExercises() {
             
             codeSection = `
                 ${readOnlySection}
-                <div class="editable-code-header">Área de testes (editável):</div>
-                <textarea id="code-${exercise.id}" class="${textareaClass}" ${textareaProps} placeholder="${isExample ? 'Este é um exemplo - apenas podes executar os testes' : !isAccessible ? 'Exercício bloqueado' : 'Escreve os teus testes aqui...'}">${exercise.baseCode}</textarea>
+                <div class="editable-code-header">
+                    Área de testes (editável)
+                    <span id="test-counter-${exercise.id}" class="test-counter">0 testes escritos (mínimo: 3)</span>
+                </div>
+                <textarea id="code-${exercise.id}" class="${textareaClass}" ${textareaProps} placeholder="${isExample ? 'Este é um exemplo - apenas podes executar os testes' : !isAccessible ? 'Exercício bloqueado' : 'Escreve os teus testes aqui...'}" oninput="updateTestCounter(${exercise.id})">${codeToShow}</textarea>
             `;
         }
         
@@ -153,7 +196,7 @@ function displayExercises() {
                     ${codeSection}
                     <div class="exercise-buttons">
                         <button class="btn btn-test" ${!isAccessible ? 'disabled' : ''} onclick="runTests(${exercise.id})">Executar Testes</button>
-                        <button class="btn btn-submit" ${submitButtonProps} onclick="submitExercise(${exercise.id})">${isExample ? 'Exemplo - Não Submetível' : !isAccessible ? 'Bloqueado' : 'Submeter'}</button>
+                        <button class="btn btn-submit btn-disabled" ${submitButtonProps} onclick="submitExercise(${exercise.id})" disabled>${isExample ? 'Exemplo - Não Submetível' : !isAccessible ? 'Bloqueado' : 'Execute os testes primeiro'}</button>
                         <button class="btn btn-clear" ${clearButtonProps} onclick="clearCode(${exercise.id})">${isExample ? 'Repor Exemplo' : !isAccessible ? 'Bloqueado' : 'Limpar'}</button>
                     </div>
                     <div id="results-${exercise.id}" class="test-results" style="display: none;"></div>
@@ -161,6 +204,41 @@ function displayExercises() {
             </div>
         `;
     }).join('');
+    
+    // Atualizar contadores de teste para exercícios não de programação
+    exercises.forEach(exercise => {
+        // Só inicializar estado do exercício se ainda não existe (pode ter sido definido em loadPreviousSubmissions)
+        if (!exerciseStates.has(exercise.id)) {
+            exerciseStates.set(exercise.id, {
+                lastExecutedCode: null,
+                lastTestResults: null,
+                codeChanged: false
+            });
+        }
+        
+        // Verificar se já tem estado válido (de submissão anterior)
+        const state = exerciseStates.get(exercise.id);
+        const hasValidState = state.lastTestResults && state.lastExecutedCode && !state.codeChanged;
+        
+        if (exercise.type !== 'coding') {
+            setTimeout(() => {
+                updateTestCounter(exercise.id);
+                // Se tem estado válido, habilitar submissão
+                if (hasValidState) {
+                    updateSubmitButton(exercise.id, true);
+                }
+            }, 100);
+        } else {
+            // Para exercícios de programação, verificar se pode submeter
+            setTimeout(() => {
+                if (hasValidState && state.lastTestResults.allPassed) {
+                    updateSubmitButton(exercise.id, true);
+                } else {
+                    updateSubmitButton(exercise.id, false);
+                }
+            }, 100);
+        }
+    });
 }
 
 function toggleExercise(exerciseId) {
@@ -174,9 +252,78 @@ function toggleExercise(exerciseId) {
     if (!isActive) {
         content.classList.add('active');
         currentExercise = exerciseId;
+        
+        // Atualizar contador de testes quando abrir exercício
+        updateTestCounter(exerciseId);
     } else {
         currentExercise = null;
     }
+}
+
+// Nova função para atualizar contador de testes e detectar mudanças
+function updateTestCounter(exerciseId) {
+    const exercise = exercises.find(ex => ex.id === exerciseId);
+    const counterSpan = document.getElementById(`test-counter-${exerciseId}`);
+    const codeTextarea = document.getElementById(`code-${exerciseId}`);
+    
+    if (!exercise || exercise.type === 'coding' || !counterSpan || !codeTextarea) {
+        return;
+    }
+    
+    const code = codeTextarea.value;
+    const testCount = (code.match(/console\.assert\s*\(/g) || []).length;
+    
+    // Verificar se o código mudou desde a última execução (só se já houve execução)
+    const state = exerciseStates.get(exerciseId) || {};
+    
+    if (state.lastExecutedCode !== null && state.lastExecutedCode !== code) {
+        // Só marcar como alterado se realmente havia código executado antes
+        exerciseStates.set(exerciseId, {
+            ...state,
+            codeChanged: true,
+            lastTestResults: null
+        });
+        
+        // Limpar resultados antigos se código mudou
+        const resultsDiv = document.getElementById(`results-${exerciseId}`);
+        if (resultsDiv && resultsDiv.style.display !== 'none') {
+            resultsDiv.innerHTML = '<div class="warning-message">Código alterado. Execute os testes novamente para submeter.</div>';
+            resultsDiv.className = 'test-results warning';
+        }
+        
+        // Desabilitar botão de submissão
+        updateSubmitButton(exerciseId, false);
+    }
+    
+    if (testCount >= 3) {
+        counterSpan.innerHTML = `<span class="test-count-good">${testCount} testes escritos ✓</span>`;
+    } else {
+        counterSpan.innerHTML = `<span class="test-count-bad">${testCount} testes escritos (mínimo: 3)</span>`;
+    }
+}
+
+// Nova função para atualizar estado do botão de submissão
+function updateSubmitButton(exerciseId, canSubmit) {
+    const submitBtn = document.querySelector(`button[onclick="submitExercise(${exerciseId})"]`);
+    if (submitBtn) {
+        submitBtn.disabled = !canSubmit;
+        if (canSubmit) {
+            submitBtn.textContent = 'Submeter';
+            submitBtn.classList.remove('btn-disabled');
+        } else {
+            submitBtn.textContent = 'Execute os testes primeiro';
+            submitBtn.classList.add('btn-disabled');
+        }
+    }
+}
+
+// Função de debug temporária
+function debugExerciseState(exerciseId) {
+    const state = exerciseStates.get(exerciseId) || {};
+    const codeTextarea = document.getElementById(`code-${exerciseId}`);
+    const currentCode = codeTextarea ? codeTextarea.value : 'N/A';
+    
+    return state;
 }
 
 function runTests(exerciseId) {
@@ -250,9 +397,39 @@ function runTests(exerciseId) {
         resultsDiv.textContent = results.join('\n');
         resultsDiv.className = failed > 0 ? 'test-results error' : 'test-results success';
 
+        // Atualizar estado do exercício após execução
+        const testResults = {
+            output: results.join('\n'),
+            allPassed: failed === 0 && passed > 0,
+            passed: passed,
+            failed: failed
+        };
+        
+        exerciseStates.set(exerciseId, {
+            lastExecutedCode: code,
+            lastTestResults: testResults,
+            codeChanged: false
+        });
+        
+        // Habilitar submissão apenas se for exercício de programação OU se todos os critérios forem atendidos
+        const canSubmit = exercise.type === 'coding' ? 
+            testResults.allPassed : 
+            (testResults.allPassed && passed >= 3 && (code.match(/console\.assert\s*\(/g) || []).length >= 3);
+            
+        updateSubmitButton(exerciseId, canSubmit);
+
     } catch (error) {
         resultsDiv.textContent = `Erro na execução:\n${error.message}`;
         resultsDiv.className = 'test-results error';
+        
+        // Desabilitar submissão em caso de erro
+        updateSubmitButton(exerciseId, false);
+        
+        exerciseStates.set(exerciseId, {
+            lastExecutedCode: code,
+            lastTestResults: null,
+            codeChanged: false
+        });
     }
 }
 
@@ -264,31 +441,66 @@ function submitExercise(exerciseId) {
     }
     
     const codeTextarea = document.getElementById(`code-${exerciseId}`);
-    const resultsDiv = document.getElementById(`results-${exerciseId}`);
-    
     const code = codeTextarea.value.trim();
+    
     if (!code) {
         showNotification('Por favor, escreve algum código antes de submeter', 'error');
         return;
     }
 
-    // Calcular se todos os testes passaram
-    const resultsText = resultsDiv.textContent || '';
-    const passedCount = (resultsText.match(/PASSOU:/g) || []).length;
-    const failedCount = (resultsText.match(/FALHOU:/g) || []).length;
-    const allPassed = failedCount === 0 && passedCount > 0;
+    // Verificar estado do exercício
+    const state = exerciseStates.get(exerciseId) || {};
+    
+    // Debug - vamos ver o que está a acontecer
+    // 1. Verificar se o código foi executado
+    if (!state.lastTestResults) {
+        showNotification('Deves executar os testes primeiro antes de submeter!', 'error');
+        return;
+    }
+    
+    if (state.codeChanged) {
+        showNotification('Código foi alterado. Execute os testes novamente antes de submeter!', 'error');
+        return;
+    }
+    
+    if (state.lastExecutedCode !== code) {
+        showNotification('O código atual é diferente do código testado. Execute os testes novamente!', 'error');
+        return;
+    }
 
-    const testResults = {
-        output: resultsText,
-        allPassed: allPassed,
-        passed: passedCount,
-        failed: failedCount
-    };
+    // Validações específicas para exercícios de teste (não de programação)
+    if (exercise.type !== 'coding') {
+        // 2. Verificar se tem pelo menos 3 console.assert
+        const assertCount = (code.match(/console\.assert\s*\(/g) || []).length;
+        if (assertCount < 3) {
+            showNotification('Deves escrever pelo menos 3 testes usando console.assert!', 'error');
+            return;
+        }
 
+        // 3. Verificar se todos os testes passaram
+        if (!state.lastTestResults.allPassed || state.lastTestResults.failed > 0) {
+            showNotification('Todos os testes devem passar antes de submeter! Corrige os testes que falharam.', 'error');
+            return;
+        }
+        
+        // 4. Verificar se pelo menos 3 testes passaram
+        if (state.lastTestResults.passed < 3) {
+            showNotification('Pelo menos 3 testes devem passar!', 'error');
+            return;
+        }
+    } else {
+        // Para exercícios de programação, verificar se todos os testes passaram
+        if (!state.lastTestResults.allPassed || state.lastTestResults.failed > 0) {
+            showNotification('Todos os testes devem passar antes de submeter! Corrige a tua implementação.', 'error');
+            return;
+        }
+    }
+
+    // Se chegou aqui, pode submeter
     socket.emit('submitExercise', {
         exerciseId,
         code,
-        testResults
+        testResults: state.lastTestResults
     });
 }
 

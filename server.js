@@ -5,10 +5,8 @@ const path = require('path');
 const jwt = require('jsonwebtoken');
 const fs = require('fs').promises;
 
-// Chave secreta para JWT (em produção, usar variável de ambiente)
 const JWT_SECRET = 'mestrado-testes-secret-key-2025';
 
-// Caminhos dos ficheiros de dados
 const DATA_DIR = path.join(__dirname, 'data');
 const SUBMISSIONS_FILE = path.join(DATA_DIR, 'submissions.json');
 const CHATS_FILE = path.join(DATA_DIR, 'chats.json');
@@ -17,15 +15,12 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
-// Configuração do servidor
 const PORT = process.env.PORT || 3000;
 
-// Middleware
 app.use(express.static('public'));
 app.use(express.json());
 
-// Armazenamento em memória
-const users = new Map(); // userId -> { type: 'student'|'admin', studentId?: string, socketId: string }
+const users = new Map();
 const exercises = [
   {
     id: 0,
@@ -34,8 +29,9 @@ const exercises = [
     isExample: true,
     readOnlyCode: `function soma(a, b) {
   return a + b;
-}`,
-    baseCode: `// EXEMPLO DE TESTES COMPLETOS:
+}
+
+// EXEMPLO DE TESTES COMPLETOS:
 console.assert(soma(2, 3) === 5, "2 + 3 deve ser 5");
 console.assert(soma(0, 0) === 0, "0 + 0 deve ser 0");
 console.assert(soma(-1, 1) === 0, "-1 + 1 deve ser 0");
@@ -57,27 +53,12 @@ console.log("Agora podes resolver os exercícios seguintes!");`
   const regex = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
   return regex.test(email);
 }`,
-    baseCode: `// Escreve os teus testes aqui usando console.assert:
-// Exemplo: console.assert(validarEmail("test@example.com") === true, "Email válido deve retornar true");
-
-`
+    baseCode: `// Escreve os teus testes aqui:
+    // Exemplo: console.assert(validarEmail("test@example.com") === true, "Email válido deve retornar true");`
   },
   {
     id: 2,
-    title: "Exercício 2 - Teste de Array Ordenação",
-    description: "Crie testes para uma função que ordena um array de números. A função está implementada - testa diferentes tipos de arrays.",
-    isExample: false,
-    readOnlyCode: `function ordenarArray(arr) {
-  return [...arr].sort((a, b) => a - b);
-}`,
-    baseCode: `// Escreve os teus testes aqui usando console.assert:
-// Exemplo: console.assert(JSON.stringify(ordenarArray([3,1,2])) === JSON.stringify([1,2,3]), "Array deve ser ordenado");
-
-`
-  },
-  {
-    id: 3,
-    title: "Exercício 3 - Teste de Calculadora",
+    title: "Exercício 2 - Teste de Calculadora",
     description: "Crie testes para uma calculadora simples com múltiplas operações. A função está implementada - testa todas as operações e casos especiais.",
     isExample: false,
     readOnlyCode: `function calculadora(operacao, a, b) {
@@ -88,38 +69,38 @@ console.log("Agora podes resolver os exercícios seguintes!");`
     case '/': return b !== 0 ? a / b : null;
     default: return null;
   }
+  }`,
+    baseCode: ``
+  },
+  {
+    id: 3,
+    title: "Exercício 3 - Teste de Array Ordenação",
+    description: "Crie testes para uma função que ordena um array de números. A função está implementada - testa diferentes tipos de arrays.",
+    isExample: false,
+    readOnlyCode: `function ordenarArray(arr) {
+  return [...arr].sort((a, b) => a - b);
 }`,
-    baseCode: `// Escreve os teus testes aqui usando console.assert:
-// Exemplo: console.assert(calculadora('+', 5, 3) === 8, "5 + 3 deve ser 8");
-
-`
+    baseCode: ``
   },
   {
     id: 4,
     title: "Programação - Função Fatorial",
     description: "Implementa uma função que calcula o fatorial de um número. Os testes já estão prontos - faz a função passar em todos eles.",
-    type: "coding", // Novo tipo: o aluno escreve a função
-    testCode: `// TESTES PRONTOS - NÃO MODIFICAR
-console.assert(fatorial(0) === 1, "fatorial(0) deve ser 1");
+    type: "coding",
+    testCode: `console.assert(fatorial(0) === 1, "fatorial(0) deve ser 1");
 console.assert(fatorial(1) === 1, "fatorial(1) deve ser 1");
 console.assert(fatorial(5) === 120, "fatorial(5) deve ser 120");
 console.assert(fatorial(3) === 6, "fatorial(3) deve ser 6");
 console.assert(fatorial(4) === 24, "fatorial(4) deve ser 24");
 
 console.log("Todos os testes passaram! Parabéns!");`,
-    baseCode: `// Implementa a função fatorial aqui:
-function fatorial(n) {
-  // O teu código aqui
-  
-}
-`
+    baseCode: ``
   }
 ];
 
-const submissions = new Map(); // studentId -> [{ exerciseId, code, timestamp, result }]
-const chats = new Map(); // studentId -> [{ message, timestamp, type: 'student'|'admin' }]
+const submissions = new Map();
+const chats = new Map();
 
-// Função para verificar se um exercício está completo
 function isExerciseCompleted(studentId, exerciseId) {
   const studentSubmissions = submissions.get(studentId);
   if (!studentSubmissions) return false;
@@ -127,7 +108,6 @@ function isExerciseCompleted(studentId, exerciseId) {
   const submission = studentSubmissions.find(sub => sub.exerciseId === exerciseId);
   if (!submission) return false;
   
-  // Verificar se foi marcado como completo
   if (submission.completed === true) return true;
   
   // Verificar formato novo dos resultados
@@ -135,7 +115,6 @@ function isExerciseCompleted(studentId, exerciseId) {
     return submission.testResults.allPassed === true;
   }
   
-  // Verificar formato antigo dos resultados (string)
   if (submission.testResults && typeof submission.testResults === 'string') {
     return submission.testResults.includes('Falhou: 0') && 
            submission.testResults.includes('Passou:') &&
@@ -145,22 +124,19 @@ function isExerciseCompleted(studentId, exerciseId) {
   return false;
 }
 
-// Função para verificar se o aluno pode acessar um exercício
 function canAccessExercise(studentId, exerciseId) {
-  if (exerciseId === 0) return true; // Exemplo sempre acessível
-  if (exerciseId === 1) return true; // Primeiro exercício sempre acessível
+  if (exerciseId === 0) return true;
+  if (exerciseId === 1) return true;
   
-  // Para exercícios 2+, precisa ter completado o anterior
   return isExerciseCompleted(studentId, exerciseId - 1);
 }
 
-// Funções de persistência
 async function ensureDataDirectory() {
   try {
     await fs.access(DATA_DIR);
   } catch (error) {
     await fs.mkdir(DATA_DIR, { recursive: true });
-    console.log('📁 Diretório de dados criado:', DATA_DIR);
+    console.log('Diretório de dados criado:', DATA_DIR);
   }
 }
 
@@ -175,9 +151,9 @@ async function loadData() {
       Object.entries(submissionsObj).forEach(([studentId, submissionList]) => {
         submissions.set(studentId, submissionList);
       });
-      console.log('📚 Submissões carregadas:', submissions.size, 'estudantes');
+      console.log('Submissões carregadas:', submissions.size, 'estudantes');
     } catch (error) {
-      console.log('📚 Nenhuma submissão anterior encontrada');
+      console.log('Nenhuma submissão anterior encontrada');
     }
     
     // Carregar chats
@@ -187,9 +163,9 @@ async function loadData() {
       Object.entries(chatsObj).forEach(([studentId, messageList]) => {
         chats.set(studentId, messageList);
       });
-      console.log('💬 Chats carregados:', chats.size, 'conversas');
+      console.log('Chats carregados:', chats.size, 'conversas');
     } catch (error) {
-      console.log('💬 Nenhum chat anterior encontrado');
+      console.log('Nenhum chat anterior encontrado');
     }
   } catch (error) {
     console.error('❌ Erro ao carregar dados:', error);
@@ -200,7 +176,7 @@ async function saveSubmissions() {
   try {
     const submissionsObj = Object.fromEntries(submissions);
     await fs.writeFile(SUBMISSIONS_FILE, JSON.stringify(submissionsObj, null, 2));
-    console.log('💾 Submissões guardadas');
+    console.log('Submissões guardadas');
   } catch (error) {
     console.error('❌ Erro ao guardar submissões:', error);
   }
@@ -210,7 +186,7 @@ async function saveChats() {
   try {
     const chatsObj = Object.fromEntries(chats);
     await fs.writeFile(CHATS_FILE, JSON.stringify(chatsObj, null, 2));
-    console.log('💾 Chats guardados');
+    console.log('Chats guardados');
   } catch (error) {
     console.error('❌ Erro ao guardar chats:', error);
   }
@@ -269,6 +245,23 @@ app.get('/api/exercises-status/:token', (req, res) => {
   }
 });
 
+// Nova rota para obter submissões do aluno
+app.get('/api/student-submissions/:token', (req, res) => {
+  try {
+    const decoded = jwt.verify(req.params.token, JWT_SECRET);
+    if (decoded.type !== 'student') {
+      return res.status(403).json({ error: 'Acesso negado' });
+    }
+    
+    const studentId = decoded.studentId;
+    const studentSubmissions = submissions.get(studentId) || [];
+    
+    res.json(studentSubmissions);
+  } catch (error) {
+    res.status(403).json({ error: 'Token inválido' });
+  }
+});
+
 // Rota para gerar token de acesso seguro
 app.post('/api/generate-token', express.json(), (req, res) => {
   const { userType, studentId } = req.body;
@@ -309,7 +302,7 @@ app.get('/api/validate-token/:token', (req, res) => {
 
 // WebSocket connections
 io.on('connection', (socket) => {
-  console.log('Novo utilizador conectado:', socket.id);
+  console.log('Novo utilizador conectado');
 
   // Login de utilizador
   socket.on('login', (data) => {
@@ -449,6 +442,28 @@ io.on('connection', (socket) => {
       return;
     }
     
+    // Validações específicas para exercícios de teste (backend)
+    if (exercise.type !== 'coding') {
+      // Verificar se tem pelo menos 3 console.assert
+      const assertCount = (code.match(/console\.assert\s*\(/g) || []).length;
+      if (assertCount < 3) {
+        socket.emit('submissionError', { message: 'Deves escrever pelo menos 3 testes usando console.assert!' });
+        return;
+      }
+      
+      // Verificar se todos os testes passaram
+      if (!testResults || !testResults.allPassed || testResults.failed > 0) {
+        socket.emit('submissionError', { message: 'Todos os testes devem passar antes de submeter!' });
+        return;
+      }
+      
+      // Verificar se tem pelo menos 3 testes que passaram
+      if (testResults.passed < 3) {
+        socket.emit('submissionError', { message: 'Pelo menos 3 testes devem passar!' });
+        return;
+      }
+    }
+    
     const submission = {
       exerciseId,
       code,
@@ -470,11 +485,11 @@ io.on('connection', (socket) => {
     if (existingIndex !== -1) {
       // Substituir submissão existente
       studentSubmissions[existingIndex] = submission;
-      console.log(`Submissão substituída de ${studentId} para exercício ${exerciseId}`);
+      // Submissão substituída
     } else {
       // Adicionar nova submissão
       studentSubmissions.push(submission);
-      console.log(`Nova submissão de ${studentId} para exercício ${exerciseId}`);
+      // Nova submissão
     }
     
     // Guardar submissões no ficheiro
@@ -489,14 +504,14 @@ io.on('connection', (socket) => {
     socket.to('admin').emit('newSubmission', submissionData);
     socket.emit('submissionSuccess', submission);
     
-    console.log(`Submissão recebida de ${studentId} para exercício ${exerciseId}`);
+    // Submissão salva
   });
 
   // Desconexão
   socket.on('disconnect', () => {
     const user = users.get(socket.id);
     if (user) {
-      console.log(`Utilizador desconectado: ${user.type} ${user.studentId || 'admin'}`);
+      // Utilizador desconectado
       users.delete(socket.id);
     }
   });
@@ -509,26 +524,26 @@ async function startServer() {
   
   // Iniciar servidor HTTP
   server.listen(PORT, () => {
-    console.log(`🚀 Servidor a correr na porta ${PORT}`);
-    console.log(`🌐 Acesse: http://localhost:${PORT}`);
-    console.log(`💾 Sistema de persistência ativo`);
+    console.log(`Servidor a correr na porta ${PORT}`);
+    console.log(`Acesse: http://localhost:${PORT}`);
+    console.log(`Sistema de persistência ativo`);
   });
 }
 
 // Graceful shutdown - salvar dados ao encerrar
 process.on('SIGINT', async () => {
-  console.log('\n🛑 Encerrando servidor...');
+  console.log('\nEncerrando servidor...');
   await saveSubmissions();
   await saveChats();
-  console.log('💾 Dados guardados com sucesso');
+  console.log('Dados guardados com sucesso');
   process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
-  console.log('\n🛑 Encerrando servidor...');
+  console.log('\nEncerrando servidor...');
   await saveSubmissions();
   await saveChats();
-  console.log('💾 Dados guardados com sucesso');
+  console.log('Dados guardados com sucesso');
   process.exit(0);
 });
 

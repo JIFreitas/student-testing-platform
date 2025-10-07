@@ -31,14 +31,12 @@ socket.on('connect', () => {
 });
 
 socket.on('allSubmissions', (data) => {
-    console.log('Recebidas submissões:', data);
     submissions = Array.isArray(data) ? data : [];
     displaySubmissions();
     updateStats();
 });
 
 socket.on('allChats', (data) => {
-    console.log('Recebidos chats:', data);
     chats = Array.isArray(data) ? data : [];
     displayChats();
     updateStats();

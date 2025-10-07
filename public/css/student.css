@@ -391,6 +391,45 @@ textarea.readonly:focus {
     margin-bottom: 0.5rem;
     font-size: 0.9rem;
     margin-top: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.test-counter {
+    font-size: 0.8rem;
+    font-weight: normal;
+}
+
+.test-count-good {
+    color: #28a745;
+    font-weight: bold;
+}
+
+.test-count-bad {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+.btn-disabled {
+    background: #6c757d !important;
+    cursor: not-allowed !important;
+    opacity: 0.6 !important;
+}
+
+.warning-message {
+    color: #856404;
+    background-color: #fff3cd;
+    border: 1px solid #ffeaa7;
+    padding: 0.75rem;
+    border-radius: 0.25rem;
+    margin: 0.5rem 0;
+}
+
+.test-results.warning {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    color: #856404;
 }
 
 @media (max-width: 768px) {

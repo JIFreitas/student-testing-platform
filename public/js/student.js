@@ -196,7 +196,7 @@ function displayExercises() {
                     ${codeSection}
                     <div class="exercise-buttons">
                         <button class="btn btn-test" ${!isAccessible ? 'disabled' : ''} onclick="runTests(${exercise.id})">Executar Testes</button>
-                        <button class="btn btn-submit btn-disabled" ${submitButtonProps} onclick="submitExercise(${exercise.id})" disabled>${isExample ? 'Exemplo - Não Submetível' : !isAccessible ? 'Bloqueado' : 'Execute pelo menos 3 testes primeiro'}</button>
+                        <button class="btn btn-submit btn-disabled" ${submitButtonProps} onclick="submitExercise(${exercise.id})" disabled>${isExample ? 'Exemplo - Não Submetível' : !isAccessible ? 'Bloqueado' : 'Execute os testes primeiro'}</button>
                         <button class="btn btn-clear" ${clearButtonProps} onclick="clearCode(${exercise.id})">${isExample ? 'Repor Exemplo' : !isAccessible ? 'Bloqueado' : 'Limpar'}</button>
                     </div>
                     <div id="results-${exercise.id}" class="test-results" style="display: none;"></div>
@@ -311,7 +311,7 @@ function updateSubmitButton(exerciseId, canSubmit) {
             submitBtn.textContent = 'Submeter';
             submitBtn.classList.remove('btn-disabled');
         } else {
-            submitBtn.textContent = 'Execute pelo menos 3 testes primeiro';
+            submitBtn.textContent = 'Execute os testes primeiro';
             submitBtn.classList.add('btn-disabled');
         }
     }

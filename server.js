@@ -29,8 +29,8 @@ const exercises = [
     isExample: true,
     readOnlyCode: `function soma(a, b) {
   return a + b;
-}
-
+}`,
+baseCode: `
 // EXEMPLO DE TESTES COMPLETOS:
 console.assert(soma(2, 3) === 5, "2 + 3 deve ser 5");
 console.assert(soma(0, 0) === 0, "0 + 0 deve ser 0");
@@ -69,7 +69,7 @@ console.log("Agora podes resolver os exercícios seguintes!");`
     case '/': return b !== 0 ? a / b : null;
     default: return null;
   }
-  }`,
+}`,
     baseCode: ``
   },
   {
@@ -90,11 +90,10 @@ console.log("Agora podes resolver os exercícios seguintes!");`
     testCode: `console.assert(fatorial(0) === 1, "fatorial(0) deve ser 1");
 console.assert(fatorial(1) === 1, "fatorial(1) deve ser 1");
 console.assert(fatorial(5) === 120, "fatorial(5) deve ser 120");
-console.assert(fatorial(3) === 6, "fatorial(3) deve ser 6");
-console.assert(fatorial(4) === 24, "fatorial(4) deve ser 24");
-
-console.log("Todos os testes passaram! Parabéns!");`,
-    baseCode: ``
+console.assert(fatorial(-3) === "Não é possivel obter o fatorial de um número negativo", "fatorial(-3) deve ser 'Não é possivel obter o fatorial de um número negativo'");
+console.assert(fatorial(4) === 24, "fatorial(4) deve ser 24");`,
+    baseCode: `// Complete a função:\n
+function fatorial(n) {\n\n}`
   }
 ];
 

@@ -92,6 +92,7 @@ input[type="text"]:focus {
 .btn-admin {
     background: #764ba2;
     color: white;
+    display: none; /* Ocultar botão de admin */
 }
 
 .btn-admin:hover {

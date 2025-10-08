@@ -196,7 +196,7 @@ function displayExercises() {
                     ${codeSection}
                     <div class="exercise-buttons">
                         <button class="btn btn-test" ${!isAccessible ? 'disabled' : ''} onclick="runTests(${exercise.id})">Executar Testes</button>
-                        <button class="btn btn-submit btn-disabled" ${submitButtonProps} onclick="submitExercise(${exercise.id})" disabled>${isExample ? 'Exemplo - Não Submetível' : !isAccessible ? 'Bloqueado' : 'Execute os testes primeiro'}</button>
+                        <button class="btn btn-submit btn-disabled" ${submitButtonProps} onclick="submitExercise(${exercise.id})" disabled>${isExample ? 'Exemplo - Não Submetível' : !isAccessible ? 'Bloqueado' : 'Execute pelo menos 3 testes primeiro'}</button>
                         <button class="btn btn-clear" ${clearButtonProps} onclick="clearCode(${exercise.id})">${isExample ? 'Repor Exemplo' : !isAccessible ? 'Bloqueado' : 'Limpar'}</button>
                     </div>
                     <div id="results-${exercise.id}" class="test-results" style="display: none;"></div>
@@ -311,7 +311,7 @@ function updateSubmitButton(exerciseId, canSubmit) {
             submitBtn.textContent = 'Submeter';
             submitBtn.classList.remove('btn-disabled');
         } else {
-            submitBtn.textContent = 'Execute os testes primeiro';
+            submitBtn.textContent = 'Execute pelo menos 3 testes primeiro';
             submitBtn.classList.add('btn-disabled');
         }
     }
@@ -326,6 +326,66 @@ function debugExerciseState(exerciseId) {
     return state;
 }
 
+// Função de execução segura
+function safeExecute(code, logs, assertions, timeout = 5000) {
+    // 1. Verificar padrões perigosos
+    const dangerousPatterns = [
+        /while\s*\(\s*true\s*\)/i,
+        /for\s*\(\s*;\s*;\s*\)/i,
+        /setInterval|setTimeout/i,
+        /fetch|XMLHttpRequest|WebSocket/i,
+        /document\.|window\.|location\.|navigator\./i,
+        /localStorage|sessionStorage/i,
+        /\.innerHTML|\.outerHTML/i,
+        /import\s|require\s*\(/i,
+        /process\.|Buffer|global/i,
+        /Function\s*\(|new\s+Function/i
+    ];
+    
+    for (const pattern of dangerousPatterns) {
+        if (pattern.test(code)) {
+            throw new Error(`Código não permitido: padrão perigoso detectado`);
+        }
+    }
+    
+    // 2. Verificar se não há loops excessivos (contagem aproximada)
+    const loopMatches = code.match(/(for|while)\s*\(/g) || [];
+    if (loopMatches.length > 3) {
+        throw new Error('Muitos loops detectados - máximo 3 loops permitidos');
+    }
+    
+    // 3. Criar contexto seguro
+    const safeConsole = {
+        log: (...args) => logs.push(args.join(' ')),
+        assert: (condition, message) => {
+            if (!condition) {
+                assertions.push(`FALHOU: ${message}`);
+            } else {
+                assertions.push(`PASSOU: ${message}`);
+            }
+        }
+    };
+    
+    // 4. Executar com timeout
+    return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => {
+            reject(new Error('Timeout: Código demorou mais de 5 segundos'));
+        }, timeout);
+        
+        try {
+            // Usar Function constructor com contexto limitado
+            const func = new Function('console', `"use strict"; ${code}`);
+            func(safeConsole);
+            
+            clearTimeout(timer);
+            resolve();
+        } catch (error) {
+            clearTimeout(timer);
+            reject(error);
+        }
+    });
+}
+
 function runTests(exerciseId) {
     const codeTextarea = document.getElementById(`code-${exerciseId}`);
     const resultsDiv = document.getElementById(`results-${exerciseId}`);
@@ -335,22 +395,11 @@ function runTests(exerciseId) {
     resultsDiv.className = 'test-results info';
     resultsDiv.textContent = 'Executando testes...';
 
-    try {
+    // Função para execução assíncrona
+    const executeAsync = async () => {
         const logs = [];
         const assertions = [];
         
-        const originalLog = console.log;
-        const originalAssert = console.assert;
-        
-        console.log = (...args) => logs.push(args.join(' '));
-        console.assert = (condition, message) => {
-            if (!condition) {
-                assertions.push(`FALHOU: ${message}`);
-            } else {
-                assertions.push(`PASSOU: ${message}`);
-            }
-        };
-
         // Encontrar o exercício atual
         const exercise = exercises.find(ex => ex.id === exerciseId);
         let fullCode = '';
@@ -367,10 +416,8 @@ function runTests(exerciseId) {
             }
         }
 
-        eval(fullCode);
-
-        console.log = originalLog;
-        console.assert = originalAssert;
+        // Executar código de forma segura
+        await safeExecute(fullCode, logs, assertions);
 
         const results = [];
         if (logs.length > 0) {
@@ -411,14 +458,36 @@ function runTests(exerciseId) {
             codeChanged: false
         });
         
+        // Validação de uso da função nos testes
+        let usesFunction = true;
+        if (exercise.type !== 'coding') {
+            // Extrair nome da função do código read-only
+            const functionMatch = exercise.readOnlyCode.match(/function\s+(\w+)\s*\(/);
+            if (functionMatch) {
+                const functionName = functionMatch[1];
+                const functionUsageRegex = new RegExp(`\\b${functionName}\\s*\\(`, 'g');
+                const functionUsages = (code.match(functionUsageRegex) || []).length;
+                
+                if (functionUsages === 0) {
+                    usesFunction = false;
+                    results.push(`\nAVISO: Deves usar a função '${functionName}()' nos teus testes!`);
+                    results.push(`Exemplo: console.assert(${functionName}(...) === expected, "mensagem");`);
+                    resultsDiv.textContent = results.join('\n');
+                    resultsDiv.className = 'test-results error';
+                }
+            }
+        }
+
         // Habilitar submissão apenas se for exercício de programação OU se todos os critérios forem atendidos
         const canSubmit = exercise.type === 'coding' ? 
             testResults.allPassed : 
-            (testResults.allPassed && passed >= 3 && (code.match(/console\.assert\s*\(/g) || []).length >= 3);
+            (testResults.allPassed && passed >= 3 && (code.match(/console\.assert\s*\(/g) || []).length >= 3 && usesFunction);
             
         updateSubmitButton(exerciseId, canSubmit);
+    };
 
-    } catch (error) {
+    // Executar de forma assíncrona
+    executeAsync().catch(error => {
         resultsDiv.textContent = `Erro na execução:\n${error.message}`;
         resultsDiv.className = 'test-results error';
         
@@ -430,7 +499,7 @@ function runTests(exerciseId) {
             lastTestResults: null,
             codeChanged: false
         });
-    }
+    });
 }
 
 function submitExercise(exerciseId) {
@@ -477,13 +546,26 @@ function submitExercise(exerciseId) {
             return;
         }
 
-        // 3. Verificar se todos os testes passaram
+        // 3. Verificar se usa a função nos testes
+        const functionMatch = exercise.readOnlyCode.match(/function\s+(\w+)\s*\(/);
+        if (functionMatch) {
+            const functionName = functionMatch[1];
+            const functionUsageRegex = new RegExp(`\\b${functionName}\\s*\\(`, 'g');
+            const functionUsages = (code.match(functionUsageRegex) || []).length;
+            
+            if (functionUsages === 0) {
+                showNotification(`Deves usar a função '${functionName}()' nos teus testes! Não podes usar apenas valores constantes.`, 'error');
+                return;
+            }
+        }
+
+        // 4. Verificar se todos os testes passaram
         if (!state.lastTestResults.allPassed || state.lastTestResults.failed > 0) {
             showNotification('Todos os testes devem passar antes de submeter! Corrige os testes que falharam.', 'error');
             return;
         }
         
-        // 4. Verificar se pelo menos 3 testes passaram
+        // 5. Verificar se pelo menos 3 testes passaram
         if (state.lastTestResults.passed < 3) {
             showNotification('Pelo menos 3 testes devem passar!', 'error');
             return;
